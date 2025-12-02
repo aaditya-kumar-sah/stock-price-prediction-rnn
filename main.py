@@ -1,3 +1,4 @@
+from pickletools import optimize
 import numpy as np 
 import pandas as pd
 import yfinance as yf
@@ -47,3 +48,30 @@ class PredictionModel(nn.Module):
     
     def forward(self, x):
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dims)
+        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dims)
+
+        out, (hn cn) = self.lstm(x, (h0.detach(), c0.detach()))
+        out = self.fc(out[:, -1, :])
+
+        return out
+        
+    
+model = PredictionModel(input_dims=1, hidden_dims=32, num_layers=2, output_dims=1)
+
+critierion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr = 0.01)
+
+num_epochs = 200
+
+for i in range(num_epochs):
+    y_train_pred = model(X_train)
+
+    loss = critierion(y_train_pred, y_train)
+
+    if i % 25 == 0:
+        print(i, loss)
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    
